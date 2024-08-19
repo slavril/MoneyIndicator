@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:moni/src/dashboard/battery.dart';
 
 import 'controller.dart';
 
@@ -8,6 +9,8 @@ class TheCard extends StatelessWidget {
   final String description;
   final String amount;
   final String amountCanSpendADay;
+  final String remainDays;
+  final int batteryUsage;
 
   const TheCard({
     super.key,
@@ -15,6 +18,8 @@ class TheCard extends StatelessWidget {
     required this.description,
     required this.amount,
     required this.amountCanSpendADay,
+    required this.remainDays,
+    required this.batteryUsage,
   });
 
   @override
@@ -58,12 +63,24 @@ class TheCard extends StatelessWidget {
               style: const TextStyle(fontSize: 12),
             ),
             Text(
+              'Remaining days: $remainDays',
+              style: const TextStyle(fontSize: 12),
+            ),
+            Text(
               'Amount you can spend per day: $amountCanSpendADay',
               style: const TextStyle(fontSize: 12),
             ),
             Text(
+              'Battery usage: $batteryUsage%',
+              style: const TextStyle(fontSize: 12),
+            ),
+            BatteryIndicator(percentage: batteryUsage,),
+            Text(
               description,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: indicatorColor),
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: indicatorColor),
             ),
           ],
         ),
@@ -72,11 +89,6 @@ class TheCard extends StatelessWidget {
   }
 }
 
-/// Displays the various settings that can be customized by the user.
-///
-/// When a user changes a setting, the SettingsController is updated and
-/// Widgets that listen to the SettingsController are rebuilt.
-///
 // ignore: must_be_immutable
 
 class DashboardView extends StatefulWidget {
@@ -91,9 +103,11 @@ class _DashboardView extends State<DashboardView> {
   late int? _amount = widget.controller.amount;
   // ignore: avoid_init_to_null
   String? _textAmount = null;
-
   @override
   Widget build(BuildContext context) {
+    widget.controller.loadTodayAmount().then((value) => setState(() {
+          _amount = value;
+        }));
     return Scaffold(
       backgroundColor: const Color(0xFFFFB22C),
       appBar: AppBar(
@@ -112,11 +126,15 @@ class _DashboardView extends State<DashboardView> {
                     : widget.controller.formattedAmount(_amount),
                 amountCanSpendADay: widget.controller.formattedAmount(
                     widget.controller.moneyForEachDayOfRemain()),
+                remainDays: widget.controller.remainDaysOfMonth().toString(),
+                batteryUsage: widget.controller.batteryUsage().round(),
               ),
               const SizedBox(height: 20),
               Text(
-                widget.controller.formattedAmount(int.tryParse(_textAmount ?? '0') ?? 0),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                widget.controller
+                    .formattedAmount(int.tryParse(_textAmount ?? '0') ?? 0),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               TextField(
                 keyboardType: TextInputType.number,
@@ -139,7 +157,7 @@ class _DashboardView extends State<DashboardView> {
                       onPressed: () {
                         setState(() {
                           _amount = int.parse(_textAmount!);
-                          widget.controller.updateToDayAmount(_amount);
+                          widget.controller.updateToDayAmount(_amount, false);
                         });
                       },
                       style: ElevatedButton.styleFrom(
@@ -150,6 +168,27 @@ class _DashboardView extends State<DashboardView> {
                         ), // Change the button color here
                       ),
                       child: const Text('Submit',
+                          style: TextStyle(color: Color(0xFFF5F7F8))))),
+              const SizedBox(height: 10),
+              SizedBox(
+                  width: double.infinity, // Or specify a fixed width
+                  height: 50, // Adjust height as needed
+                  child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _amount = int.parse(_textAmount!);
+                          widget.controller.updateToDayAmount(_amount, true);
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            const Color.fromARGB(255, 63, 126, 105),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                              6), // Adjust radius as needed
+                        ), // Change the button color here
+                      ),
+                      child: const Text('Recharge',
                           style: TextStyle(color: Color(0xFFF5F7F8))))),
             ],
           )),
